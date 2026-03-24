@@ -20,12 +20,33 @@ RUN apt-get update \
 
 ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
 
-# Copy source and build wheel in-container
 COPY . /build/
+
+# Install all pip dependencies + OctoBot package, then copy sub-packages
+# into site-packages (they have no setup.py — Pants monorepo layout)
 RUN python -m venv /opt/venv \
     && . /opt/venv/bin/activate \
     && pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir .
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir -r full_requirements.txt \
+    && for f in packages/*/requirements.txt; do pip install --no-cache-dir -r "$f"; done \
+    && for f in packages/*/full_requirements.txt; do [ -f "$f" ] && pip install --no-cache-dir -r "$f"; done \
+    && pip install --no-cache-dir . \
+    && SITE=$(/opt/venv/bin/python -c "import site; print(site.getsitepackages()[0])") \
+    && cp -r packages/commons/octobot_commons "$SITE/" \
+    && cp -r packages/async_channel/async_channel "$SITE/" \
+    && cp -r packages/trading/octobot_trading "$SITE/" \
+    && cp -r packages/trading_backend/trading_backend "$SITE/" \
+    && cp -r packages/backtesting/octobot_backtesting "$SITE/" \
+    && cp -r packages/evaluators/octobot_evaluators "$SITE/" \
+    && cp -r packages/tentacles_manager/octobot_tentacles_manager "$SITE/" \
+    && cp -r packages/services/octobot_services "$SITE/" \
+    && cp -r packages/node/octobot_node "$SITE/" \
+    && mkdir -p "$SITE/tentacles" \
+    && touch "$SITE/tentacles/__init__.py" \
+    && for d in Trading Evaluator Meta Services Backtesting Automation Agent profiles; do \
+         [ -d "packages/tentacles/$d" ] && cp -r "packages/tentacles/$d" "$SITE/tentacles/"; \
+       done
 
 FROM python:3.13-slim-bullseye
 
