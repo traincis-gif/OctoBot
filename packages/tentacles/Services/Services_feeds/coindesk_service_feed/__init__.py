@@ -1,2 +1,0 @@
-from .coindesk_feed import CoindeskServiceFeed
-from .coindesk_feed_simulator import CoindeskServiceFeedSimulator
