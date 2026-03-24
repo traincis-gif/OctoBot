@@ -36,12 +36,12 @@ class OrdersUpdater(orders_channel.OrdersProducer):
 
     CHANNEL_NAME = constants.ORDERS_CHANNEL
     ORDERS_UPDATE_LIMIT = None
-    ORDERS_STARTING_REFRESH_TIME = 10
-    OPEN_ORDER_REFRESH_TIME = 7
-    CLOSE_ORDER_REFRESH_TIME = 81
-    TIME_BETWEEN_ORDERS_REFRESH = 2
-    DEPENDENCIES_TIMEOUT = 30
-    OPEN_ORDER_INITIAL_FETCH_GIVE_UP_TIMEOUT = 30
+    ORDERS_STARTING_REFRESH_TIME = 3   # optimized: 10s → 3s
+    OPEN_ORDER_REFRESH_TIME = 2         # optimized: 7s → 2s for faster fill detection
+    CLOSE_ORDER_REFRESH_TIME = 15       # optimized: 81s → 15s for faster PnL updates
+    TIME_BETWEEN_ORDERS_REFRESH = 0.5   # optimized: 2s → 0.5s
+    DEPENDENCIES_TIMEOUT = 15           # optimized: 30s → 15s
+    OPEN_ORDER_INITIAL_FETCH_GIVE_UP_TIMEOUT = 15  # optimized: 30s → 15s
 
     def __init__(self, channel):
         super().__init__(channel)

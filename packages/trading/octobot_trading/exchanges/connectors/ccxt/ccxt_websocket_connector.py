@@ -43,9 +43,9 @@ from octobot_trading.enums import WebsocketFeeds as Feeds
 class CCXTWebsocketConnector(abstract_websocket_exchange.AbstractWebsocketExchange):
     INIT_REQUIRING_EXCHANGE_FEEDS = [Feeds.CANDLE]
     SUPPORTS_LIVE_PAIR_ADDITION = True
-    FEED_INITIALIZATION_TIMEOUT = 15 * commons_constants.MINUTE_TO_SECONDS
-    MIN_CONNECTION_CLOSE_INTERVAL = 2 * commons_constants.MINUTE_TO_SECONDS
-    NO_MESSAGE_DISCONNECTED_TIMEOUT = 4 * commons_constants.MINUTE_TO_SECONDS
+    FEED_INITIALIZATION_TIMEOUT = 120  # optimized: 900s → 120s
+    MIN_CONNECTION_CLOSE_INTERVAL = 30  # optimized: 120s → 30s
+    NO_MESSAGE_DISCONNECTED_TIMEOUT = 60  # optimized: 240s → 60s for faster disconnect detection
     RECREATE_CLIENT_ON_DISCONNECT = (
         False  # when True, a new ccxt websocket client will replace the previous
     )
@@ -105,8 +105,8 @@ class CCXTWebsocketConnector(abstract_websocket_exchange.AbstractWebsocketExchan
         trading_enums.WebsocketFeeds.POSITION,
     ]
     EXCHANGE_CONSTRUCTOR_KWARGS = {}
-    SHORT_RECONNECT_DELAY = 0.5
-    LONG_RECONNECT_DELAY = 5
+    SHORT_RECONNECT_DELAY = 0.2  # optimized: 0.5s → 0.2s
+    LONG_RECONNECT_DELAY = 2    # optimized: 5s → 2s
 
     def __init__(
         self,
