@@ -25,6 +25,8 @@ class ParadexCCXTWebsocketConnector(exchanges.CCXTWebsocketConnector):
         Feeds.KLINE: True,
         Feeds.TICKER: True,
         Feeds.CANDLE: True,
+        Feeds.ORDERS: True,      # WebSocket order updates for instant fill detection
+        Feeds.PORTFOLIO: True,   # WebSocket balance updates
     }
 
     @classmethod

@@ -1221,13 +1221,18 @@ class CCXTWebsocketConnector(abstract_websocket_exchange.AbstractWebsocketExchan
 
     async def orders(self, orders: list, **kwargs):
         """
+        Process WebSocket order updates for near-instant fill detection.
         :param orders: the ccxt orders list
         :param kwargs: the feed kwargs
         """
-        # TODO update this when supported (ccxt is supporting it)
-        raise NotImplementedError("orders callback is not implemented")
-        symbol = None  # todo
-        adapted = self.adapter.adapt_orders(orders, symbol=symbol)
+        adapted = [
+            self.adapter.adapt_order(
+                order,
+                symbol=order.get("symbol"),
+                quantity=order.get("amount"),
+            )
+            for order in orders
+        ]
         await self.push_to_channel(trading_constants.ORDERS_CHANNEL, adapted)
 
     async def trades(self, trades: list, **kwargs):
@@ -1242,14 +1247,14 @@ class CCXTWebsocketConnector(abstract_websocket_exchange.AbstractWebsocketExchan
 
     async def balance(self, balance: dict, **kwargs):
         """
+        Process WebSocket balance updates for instant portfolio sync.
         :param balance: the ccxt balance dict
         :param kwargs: the feed kwargs
         """
-        # TODO update this when supported (ccxt is supporting it)
-        raise NotImplementedError("balance callback is not implemented")
+        adapted = self.adapter.parse_balance(balance)
         await self.push_to_channel(
             trading_constants.BALANCE_CHANNEL,
-            self.adapter.parse_balance(balance.balance),
+            adapted,
         )
 
     async def transaction(self, transaction: dict, **kwargs):
