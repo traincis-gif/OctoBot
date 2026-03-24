@@ -22,7 +22,7 @@ ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
 
 COPY . /build/
 
-# Install all pip dependencies + OctoBot package, then copy sub-packages
+# Install all pip dependencies + Paradex bot package, then copy sub-packages
 # into site-packages (they have no setup.py — Pants monorepo layout)
 RUN python -m venv /opt/venv \
     && . /opt/venv/bin/activate \
@@ -72,6 +72,7 @@ RUN apt-get update \
         libtiff-dev \
     && rm -rf /var/lib/apt/lists/* \
     && chmod +x docker-entrypoint.sh \
+    && chmod +x paradex-entrypoint.sh \
     && chmod +x tunnel.sh
 
 ENV PATH="/opt/venv/bin:$PATH"
@@ -80,4 +81,4 @@ RUN mkdir -p /octobot/backtesting /octobot/logs /octobot/tentacles /octobot/user
 
 EXPOSE 5001
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["./paradex-entrypoint.sh"]
