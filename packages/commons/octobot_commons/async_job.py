@@ -26,9 +26,9 @@ class AsyncJob:
     Async job management
     """
 
-    NO_DELAY = 0.1
-    DEPENDENCIES_WAIT_TIMEOUT = 300
-    SELF_RUNNING_WAIT_TIMEOUT = 30
+    NO_DELAY = 0.01  # optimized: 0.1s → 0.01s
+    DEPENDENCIES_WAIT_TIMEOUT = 60  # optimized: 300s → 60s
+    SELF_RUNNING_WAIT_TIMEOUT = 10  # optimized: 30s → 10s
     MAXIMUM_ALLOWED_SUCCESSIVE_FAILURES = 1
 
     def __init__(

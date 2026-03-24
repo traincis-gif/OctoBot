@@ -36,9 +36,9 @@ class PositionsUpdater(positions_channel.PositionsProducer):
     """
 
     CHANNEL_NAME = constants.POSITIONS_CHANNEL
-    POSITIONS_STARTING_REFRESH_TIME = 12
-    POSITION_REFRESH_TIME = 9
-    TIME_BETWEEN_POSITIONS_REFRESH = 3
+    POSITIONS_STARTING_REFRESH_TIME = 2   # optimized: 12s → 2s
+    POSITION_REFRESH_TIME = 2              # optimized: 9s → 2s
+    TIME_BETWEEN_POSITIONS_REFRESH = 0.5   # optimized: 3s → 0.5s
 
     def __init__(self, channel):
         super().__init__(channel)

@@ -61,7 +61,7 @@ MAX_ORDER_SECONDARY_INFERENCE_COMBINATIONS_COUNT = 500000 # no more than 500.000
 MAX_NO_THREAD_WORSE_CASE_SCENARIO_FULLY_HANLDED_INFERENCE = 15 # 7 filled orders out of 15 is 6.435 combinations, 16 is 12.870 combinations (>10.000)
 MAX_ORDERS_WORSE_CASE_SCENARIO_FULLY_HANLDED_INFERENCE = 21 # 10(or 11) filled orders out of 21 is 352.716 combinations, 22 is 705.432 combinations (>500.000)
 MAX_ORDER_INFERENCE_ITERATIONS_DURATION = 1
-ORDER_INFERENCE_SLEEP_TIME = 0.2  # optimized: 1s → 0.2s
+ORDER_INFERENCE_SLEEP_TIME = 0.05  # optimized: 1s → 0.05s
 
 # Tentacles
 TRADING_MODE_REQUIRED_STRATEGIES = "required_strategies"
@@ -106,7 +106,7 @@ CCXT_ORDERS_CACHE_LIMIT = int(os.getenv("CCXT_ORDERS_CACHE_LIMIT", str(CCXT_DEFA
 CCXT_OHLCV_CACHE_LIMIT = int(os.getenv("CCXT_OHLCV_CACHE_LIMIT", str(CCXT_DEFAULT_CACHE_LIMIT)))
 CCXT_WATCH_ORDER_BOOK_LIMIT = int(os.getenv("CCXT_WATCH_ORDER_BOOK_LIMIT", str(CCXT_DEFAULT_CACHE_LIMIT)))
 CCXT_TIMEOUT_ON_EXIT_MS = 100
-THROTTLED_WS_UPDATES = float(os.getenv("THROTTLED_WS_UPDATES", "0.05"))  # optimized: 100ms → 50ms for faster market data
+THROTTLED_WS_UPDATES = float(os.getenv("THROTTLED_WS_UPDATES", "0.02"))  # optimized: 100ms → 20ms for near-realtime market data
 MAX_CANDLES_IN_RAM = int(os.getenv("MAX_CANDLES_IN_RAM", "3000"))    # max candles per CandlesManager
 STORAGE_ORIGIN_VALUE = "origin_value"
 DISPLAY_TIME_FRAME = commons_enums.TimeFrames.ONE_HOUR

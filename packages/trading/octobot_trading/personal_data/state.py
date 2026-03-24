@@ -23,7 +23,7 @@ import octobot_trading.util as util
 
 
 class State(util.Initializable):
-    PENDING_REFRESH_INTERVAL = 0.5  # optimized: 2s → 0.5s for faster order confirmation
+    PENDING_REFRESH_INTERVAL = 0.15  # optimized: 2s → 0.15s for near-instant order confirmation
 
     def __init__(self, is_from_exchange_data):
         super().__init__()
