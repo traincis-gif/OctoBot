@@ -46,7 +46,8 @@ RUN python -m venv /opt/venv \
     && touch "$SITE/tentacles/__init__.py" \
     && for d in Trading Evaluator Meta Services Backtesting Automation Agent profiles; do \
          [ -d "packages/tentacles/$d" ] && cp -r "packages/tentacles/$d" "$SITE/tentacles/"; \
-       done
+       done \
+    && find "$SITE/tentacles" -type d -exec sh -c 'touch "$1/__init__.py" 2>/dev/null; true' _ {} \;
 
 FROM python:3.13-slim-bullseye
 
