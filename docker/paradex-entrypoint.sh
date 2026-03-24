@@ -6,7 +6,6 @@ set -e
 # Save Paradex config
 if [[ -n "${PARADEX_CONFIG}" ]]; then
   echo "$PARADEX_CONFIG" | tee /octobot/user/config.json >/dev/null
-# Fallback to OCTOBOT_CONFIG for backwards compatibility
 elif [[ -n "${OCTOBOT_CONFIG}" ]]; then
   echo "$OCTOBOT_CONFIG" | tee /octobot/user/config.json >/dev/null
 fi
@@ -14,5 +13,5 @@ fi
 # Disable set -e
 set +e
 
-# Start Paradex trading bot
-OctoBot
+# Start Paradex bot (OctoBot engine + Dashboard + Telegram)
+python -m paradex_launcher

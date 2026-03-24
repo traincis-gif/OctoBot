@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paradex Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.header{background:#12121a;border-bottom:1px solid #1e1e2e;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:20px;color:#00d4aa}
+.status{display:flex;align-items:center;gap:8px;font-size:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:#555}
+.dot.on{background:#00d4aa}
+.dot.err{background:#ff4444}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;padding:24px}
+.card{background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:20px}
+.card h2{font-size:14px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.big-number{font-size:32px;font-weight:700;color:#fff}
+.big-number.green{color:#00d4aa}
+.big-number.red{color:#ff4444}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:#666;padding:8px 4px;border-bottom:1px solid #1e1e2e;font-weight:500}
+td{padding:8px 4px;border-bottom:1px solid #1a1a24}
+.side-long{color:#00d4aa}
+.side-short{color:#ff4444}
+.pnl-pos{color:#00d4aa}
+.pnl-neg{color:#ff4444}
+.uptime{color:#666;font-size:13px}
+.empty{color:#555;font-style:italic;padding:20px 0;text-align:center}
+.refresh-bar{display:flex;gap:8px;align-items:center}
+.refresh-bar button{background:#1a1a2e;border:1px solid #2a2a3e;color:#ccc;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.refresh-bar button:hover{border-color:#00d4aa;color:#00d4aa}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Paradex Dashboard</h1>
+  <div class="status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Connecting...</span>
+    <span class="uptime" id="uptime"></span>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- Portfolio -->
+  <div class="card">
+    <h2>Portfolio Value</h2>
+    <div class="big-number" id="portfolioValue">-</div>
+    <div style="margin-top:8px;color:#666;font-size:13px">
+      Initial: <span id="originValue">-</span>
+    </div>
+  </div>
+
+  <!-- Profitability -->
+  <div class="card">
+    <h2>Profitability</h2>
+    <div class="big-number" id="profitPercent">-</div>
+    <div style="margin-top:8px;color:#666;font-size:13px">
+      Market: <span id="marketPercent">-</span>
+    </div>
+  </div>
+
+  <!-- Positions -->
+  <div class="card" style="grid-column:span 2">
+    <h2>Open Positions</h2>
+    <div id="positionsTable"><div class="empty">No positions</div></div>
+  </div>
+
+  <!-- Orders -->
+  <div class="card" style="grid-column:span 2">
+    <h2>Active Orders</h2>
+    <div id="ordersTable"><div class="empty">No orders</div></div>
+  </div>
+
+  <!-- Recent Trades -->
+  <div class="card" style="grid-column:span 2">
+    <h2>Recent Trades</h2>
+    <div id="tradesTable"><div class="empty">No trades</div></div>
+  </div>
+
+  <!-- Balances -->
+  <div class="card">
+    <h2>Balances</h2>
+    <div id="balancesTable"><div class="empty">No data</div></div>
+  </div>
+
+  <!-- Fees -->
+  <div class="card">
+    <h2>Total Fees Paid</h2>
+    <div id="feesTable"><div class="empty">No data</div></div>
+  </div>
+</div>
+
+<script>
+function fmt(n,d=2){return n!=null&&!isNaN(n)?Number(n).toFixed(d):'-'}
+function fmtUSD(n){return n!=null&&!isNaN(n)?'$'+Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}):'-'}
+function fmtTime(ts){if(!ts)return'-';const d=new Date(ts*1000);return d.toLocaleString()}
+function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m'}
+function pnlClass(v){return v>0?'pnl-pos':v<0?'pnl-neg':''}
+function sideClass(s){s=String(s).toLowerCase();return s.includes('long')||s.includes('buy')?'side-long':'side-short'}
+
+async function fetchData(){
+  try{
+    const [status,portfolio,positions,orders,pnl,trades]=await Promise.all([
+      fetch('/api/status').then(r=>r.json()),
+      fetch('/api/portfolio').then(r=>r.json()),
+      fetch('/api/positions').then(r=>r.json()),
+      fetch('/api/orders').then(r=>r.json()),
+      fetch('/api/pnl').then(r=>r.json()),
+      fetch('/api/trades').then(r=>r.json()),
+    ]);
+    // Status
+    const dot=document.getElementById('statusDot');
+    const stxt=document.getElementById('statusText');
+    if(status.status==='running'){dot.className='dot on';stxt.textContent='Running'}
+    else{dot.className='dot err';stxt.textContent=status.status||'Offline'}
+    document.getElementById('uptime').textContent=status.uptime?fmtUptime(status.uptime):'';
+
+    // Portfolio
+    document.getElementById('portfolioValue').textContent=fmtUSD(portfolio.value);
+    document.getElementById('originValue').textContent=fmtUSD(portfolio.origin_value);
+
+    // Profitability
+    const pp=document.getElementById('profitPercent');
+    if(pnl.profitability){
+      const pct=pnl.profitability.percent||0;
+      pp.textContent=(pct>0?'+':'')+fmt(pct)+'%';
+      pp.className='big-number '+(pct>=0?'green':'red');
+      document.getElementById('marketPercent').textContent=fmt(pnl.profitability.market_percent)+'%';
+    }
+
+    // Positions
+    const posDiv=document.getElementById('positionsTable');
+    if(positions.positions&&positions.positions.length){
+      posDiv.innerHTML='<table><tr><th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>Liq.</th><th>uPnL</th><th>Lev</th></tr>'+
+        positions.positions.map(p=>'<tr><td>'+p.symbol+'</td><td class="'+sideClass(p.side)+'">'+p.side+'</td><td>'+fmt(p.size,4)+'</td><td>'+fmt(p.entry_price)+'</td><td>'+fmt(p.mark_price)+'</td><td>'+fmt(p.liquidation_price)+'</td><td class="'+pnlClass(p.unrealized_pnl)+'">'+fmtUSD(p.unrealized_pnl)+'</td><td>'+fmt(p.leverage,0)+'x</td></tr>').join('')+'</table>';
+    }else{posDiv.innerHTML='<div class="empty">No open positions</div>'}
+
+    // Orders
+    const ordDiv=document.getElementById('ordersTable');
+    if(orders.orders&&orders.orders.length){
+      ordDiv.innerHTML='<table><tr><th>Symbol</th><th>Side</th><th>Type</th><th>Price</th><th>Amount</th></tr>'+
+        orders.orders.map(o=>'<tr><td>'+o.symbol+'</td><td class="'+sideClass(o.side)+'">'+o.side+'</td><td>'+o.type+'</td><td>'+fmt(o.price)+'</td><td>'+fmt(o.amount,4)+'</td></tr>').join('')+'</table>';
+    }else{ordDiv.innerHTML='<div class="empty">No active orders</div>'}
+
+    // Trades
+    const trdDiv=document.getElementById('tradesTable');
+    if(trades.trades&&trades.trades.length){
+      trdDiv.innerHTML='<table><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th><th>Amount</th><th>Fee</th></tr>'+
+        trades.trades.slice(-20).reverse().map(t=>'<tr><td>'+fmtTime(t.timestamp)+'</td><td>'+t.symbol+'</td><td class="'+sideClass(t.side)+'">'+t.side+'</td><td>'+fmt(t.price)+'</td><td>'+fmt(t.amount,4)+'</td><td>'+fmt(t.fee,4)+'</td></tr>').join('')+'</table>';
+    }else{trdDiv.innerHTML='<div class="empty">No trades yet</div>'}
+
+    // Balances
+    const balDiv=document.getElementById('balancesTable');
+    if(portfolio.portfolio&&Object.keys(portfolio.portfolio).length){
+      balDiv.innerHTML='<table><tr><th>Asset</th><th>Total</th><th>Available</th></tr>'+
+        Object.entries(portfolio.portfolio).map(([k,v])=>'<tr><td>'+k+'</td><td>'+fmt(v.total,4)+'</td><td>'+fmt(v.available,4)+'</td></tr>').join('')+'</table>';
+    }else{balDiv.innerHTML='<div class="empty">No balances</div>'}
+
+    // Fees
+    const feeDiv=document.getElementById('feesTable');
+    if(pnl.total_fees&&Object.keys(pnl.total_fees).length){
+      feeDiv.innerHTML='<table><tr><th>Currency</th><th>Amount</th></tr>'+
+        Object.entries(pnl.total_fees).map(([k,v])=>'<tr><td>'+k+'</td><td>'+fmt(v,6)+'</td></tr>').join('')+'</table>';
+    }else{feeDiv.innerHTML='<div class="empty">No fees data</div>'}
+
+  }catch(e){
+    document.getElementById('statusDot').className='dot err';
+    document.getElementById('statusText').textContent='Error';
+  }
+}
+
+fetchData();
+setInterval(fetchData,5000);
+</script>
+</body>
+</html>
