@@ -20,9 +20,9 @@ if [ ! -d "/octobot/tentacles/Trading" ]; then
   SITE=$(python -c "import site; print(site.getsitepackages()[0])")
   # Package tentacles from site-packages into a zip
   # Run from /octobot so OctoBot can write logs/ here (owned by octobot user)
-  OctoBot tentacles -d "$SITE/tentacles" -p /tmp/tentacles.zip
-  OctoBot tentacles --install --location /tmp/tentacles.zip --all
-  rm -f /tmp/tentacles.zip
+  OctoBot tentacles -d "$SITE/tentacles" -p /tmp/any_platform.zip
+  OctoBot tentacles --install --location /tmp/any_platform.zip --all
+  rm -f /tmp/any_platform.zip
   echo "Tentacles installed."
 fi
 
