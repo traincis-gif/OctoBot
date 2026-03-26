@@ -19,10 +19,8 @@ if [ ! -d "/octobot/tentacles/Trading" ]; then
   echo "First run: installing tentacles..."
   SITE=$(python -c "import site; print(site.getsitepackages()[0])")
   # Package tentacles from site-packages into a zip
-  cd "$SITE"
-  OctoBot tentacles -d tentacles -p /tmp/tentacles.zip
-  cd /octobot
-  # Install from the zip
+  # Run from /octobot so OctoBot can write logs/ here (owned by octobot user)
+  OctoBot tentacles -d "$SITE/tentacles" -p /tmp/tentacles.zip
   OctoBot tentacles --install --location /tmp/tentacles.zip --all
   rm -f /tmp/tentacles.zip
   echo "Tentacles installed."
