@@ -13,6 +13,8 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+import os
+
 import ccxt
 
 import trading_backend.exchanges as exchanges
@@ -20,13 +22,13 @@ import trading_backend.enums
 
 
 class Kucoin(exchanges.Exchange):
-    SPOT_ID = "Octobot"
-    SPOT_PRIVATE_KEY = "0782058c-8c05-45f1-bfe1-840e2f96335a"
+    SPOT_ID = os.getenv("KUCOIN_SPOT_ID", "")
+    SPOT_PRIVATE_KEY = os.getenv("KUCOIN_SPOT_PRIVATE_KEY", "")
     MARGIN_ID = ""
     MARGIN_PRIVATE_KEY = ""
-    FUTURE_ID = "Octobotfutures"
-    FUTURE_PRIVATE_KEY = "018e58ef-d9ac-4c8e-9646-0afa7fa9e37c"
-    IS_SPONSORING = True
+    FUTURE_ID = os.getenv("KUCOIN_FUTURE_ID", "")
+    FUTURE_PRIVATE_KEY = os.getenv("KUCOIN_FUTURE_PRIVATE_KEY", "")
+    IS_SPONSORING = bool(os.getenv("KUCOIN_SPOT_ID"))
 
     @classmethod
     def get_name(cls):

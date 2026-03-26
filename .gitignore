@@ -140,6 +140,14 @@ letsencrypt/
 
 # dev env
 .env
+.env.*
+
+# Private keys and certificates
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
 
 # Pants build system
 /.pants.d/

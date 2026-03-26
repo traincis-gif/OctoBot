@@ -81,7 +81,11 @@ RUN apt-get update \
 
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN mkdir -p /octobot/backtesting /octobot/logs /octobot/tentacles /octobot/user
+RUN useradd -m -u 1000 -s /bin/bash octobot \
+    && mkdir -p /octobot/backtesting /octobot/logs /octobot/tentacles /octobot/user \
+    && chown -R octobot:octobot /octobot
+
+USER octobot
 
 EXPOSE 8080
 

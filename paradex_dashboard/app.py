@@ -1,9 +1,9 @@
 import os
 import asyncio
 import time
-import json
+import hmac
+import secrets
 import logging
-from functools import wraps
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -15,10 +15,14 @@ import octobot.octobot_api as octobot_api_module
 
 logger = logging.getLogger("ParadexDashboard")
 
-app = FastAPI(title="Paradex Dashboard")
+# Session secret: separate from password, cryptographically random
+_SESSION_SECRET = os.getenv("DASHBOARD_SESSION_SECRET", secrets.token_hex(32))
+
+app = FastAPI(title="Paradex Dashboard", docs_url=None, redoc_url=None)
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("DASHBOARD_PASSWORD", "change-me-now"),
+    secret_key=_SESSION_SECRET,
+    https_only=os.getenv("RAILWAY_ENVIRONMENT") is not None,
 )
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
@@ -65,7 +69,7 @@ async def login_page(request: Request):
 async def login(request: Request):
     form = await request.form()
     password = form.get("password", "")
-    if password == DASHBOARD_PASSWORD:
+    if hmac.compare_digest(password, DASHBOARD_PASSWORD):
         request.session["authenticated"] = True
         return RedirectResponse("/", status_code=302)
     return templates.TemplateResponse("login.html", {"request": request, "error": "Wrong password"})
@@ -97,8 +101,9 @@ async def api_status(request: Request):
             "uptime": round(uptime),
             "bot_id": _bot_api.get_bot_id() if _bot_api else None,
         }
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/status")
+        return {"status": "error", "error": "internal error"}
 
 
 @app.get("/api/portfolio")
@@ -118,8 +123,9 @@ async def api_portfolio(request: Request):
             "value": float(current_value) if current_value else 0,
             "origin_value": float(origin_value) if origin_value else 0,
         }
-    except Exception as e:
-        return {"portfolio": {}, "value": 0, "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/portfolio")
+        return {"portfolio": {}, "value": 0, "error": "internal error"}
 
 
 @app.get("/api/positions")
@@ -144,8 +150,9 @@ async def api_positions(request: Request):
                 "leverage": float(getattr(p, "leverage", 1)),
             })
         return {"positions": result}
-    except Exception as e:
-        return {"positions": [], "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/positions")
+        return {"positions": [], "error": "internal error"}
 
 
 @app.get("/api/orders")
@@ -169,8 +176,9 @@ async def api_orders(request: Request):
                 "status": str(getattr(o, "status", "")),
             })
         return {"orders": result}
-    except Exception as e:
-        return {"orders": [], "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/orders")
+        return {"orders": [], "error": "internal error"}
 
 
 @app.get("/api/pnl")
@@ -200,8 +208,9 @@ async def api_pnl(request: Request):
                 "market_percent": float(profitability[3]) if profitability[3] else 0,
             } if profitability else {},
         }
-    except Exception as e:
-        return {"pnl": [], "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/pnl")
+        return {"pnl": [], "error": "internal error"}
 
 
 @app.get("/api/trades")
@@ -224,14 +233,21 @@ async def api_trades(request: Request):
                 "timestamp": float(getattr(t, "executed_time", 0)),
             })
         return {"trades": result}
-    except Exception as e:
-        return {"trades": [], "error": str(e)}
+    except Exception:
+        logger.exception("Error in /api/trades")
+        return {"trades": [], "error": "internal error"}
 
 
 # --- WebSocket for live updates ---
 
 @app.websocket("/ws/live")
 async def ws_live(websocket: WebSocket):
+    # Authenticate WebSocket via session cookie
+    if DASHBOARD_PASSWORD:
+        session = websocket.cookies.get("session")
+        if not session:
+            await websocket.close(code=4001, reason="Unauthorized")
+            return
     await websocket.accept()
     try:
         while True:
@@ -257,8 +273,9 @@ async def ws_live(websocket: WebSocket):
                             for p in positions
                         ],
                     }
-                except Exception as e:
-                    data = {"status": "error", "error": str(e)}
+                except Exception:
+                    logger.exception("Error in WebSocket data fetch")
+                    data = {"status": "error", "error": "internal error"}
             await websocket.send_json(data)
             await asyncio.sleep(3)
     except WebSocketDisconnect:

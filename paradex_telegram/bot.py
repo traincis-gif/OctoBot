@@ -40,7 +40,8 @@ def _get_exchange_manager():
 
 def _is_authorized(update: Update) -> bool:
     if not TELEGRAM_CHAT_ID:
-        return True
+        logger.warning("TELEGRAM_CHAT_ID not set — rejecting all commands for security")
+        return False
     return str(update.effective_chat.id) == str(TELEGRAM_CHAT_ID)
 
 

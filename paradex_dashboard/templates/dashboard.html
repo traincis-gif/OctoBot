@@ -102,6 +102,27 @@ function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);retur
 function pnlClass(v){return v>0?'pnl-pos':v<0?'pnl-neg':''}
 function sideClass(s){s=String(s).toLowerCase();return s.includes('long')||s.includes('buy')?'side-long':'side-short'}
 
+// Safe DOM builder — no innerHTML, no XSS
+function el(tag,attrs,children){
+  const e=document.createElement(tag);
+  if(attrs)for(const[k,v]of Object.entries(attrs)){
+    if(k==='className')e.className=v;
+    else e.setAttribute(k,v);
+  }
+  if(children)for(const c of children){
+    if(typeof c==='string')e.appendChild(document.createTextNode(c));
+    else if(c)e.appendChild(c);
+  }
+  return e;
+}
+function txt(s){return document.createTextNode(String(s))}
+function buildTable(headers,rows){
+  const thead=el('tr',null,headers.map(h=>el('th',null,[h])));
+  const tbody=rows.map(r=>el('tr',null,r));
+  return el('table',null,[thead,...tbody]);
+}
+function setContent(id,node){const c=document.getElementById(id);c.textContent='';c.appendChild(node)}
+
 async function fetchData(){
   try{
     const [status,portfolio,positions,orders,pnl,trades]=await Promise.all([
@@ -135,37 +156,72 @@ async function fetchData(){
     // Positions
     const posDiv=document.getElementById('positionsTable');
     if(positions.positions&&positions.positions.length){
-      posDiv.innerHTML='<table><tr><th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>Liq.</th><th>uPnL</th><th>Lev</th></tr>'+
-        positions.positions.map(p=>'<tr><td>'+p.symbol+'</td><td class="'+sideClass(p.side)+'">'+p.side+'</td><td>'+fmt(p.size,4)+'</td><td>'+fmt(p.entry_price)+'</td><td>'+fmt(p.mark_price)+'</td><td>'+fmt(p.liquidation_price)+'</td><td class="'+pnlClass(p.unrealized_pnl)+'">'+fmtUSD(p.unrealized_pnl)+'</td><td>'+fmt(p.leverage,0)+'x</td></tr>').join('')+'</table>';
-    }else{posDiv.innerHTML='<div class="empty">No open positions</div>'}
+      setContent('positionsTable',buildTable(
+        ['Symbol','Side','Size','Entry','Mark','Liq.','uPnL','Lev'],
+        positions.positions.map(p=>[
+          el('td',null,[String(p.symbol)]),
+          el('td',{className:sideClass(p.side)},[String(p.side)]),
+          el('td',null,[fmt(p.size,4)]),
+          el('td',null,[fmt(p.entry_price)]),
+          el('td',null,[fmt(p.mark_price)]),
+          el('td',null,[fmt(p.liquidation_price)]),
+          el('td',{className:pnlClass(p.unrealized_pnl)},[fmtUSD(p.unrealized_pnl)]),
+          el('td',null,[fmt(p.leverage,0)+'x']),
+        ])
+      ));
+    }else{setContent('positionsTable',el('div',{className:'empty'},['No open positions']))}
 
     // Orders
-    const ordDiv=document.getElementById('ordersTable');
     if(orders.orders&&orders.orders.length){
-      ordDiv.innerHTML='<table><tr><th>Symbol</th><th>Side</th><th>Type</th><th>Price</th><th>Amount</th></tr>'+
-        orders.orders.map(o=>'<tr><td>'+o.symbol+'</td><td class="'+sideClass(o.side)+'">'+o.side+'</td><td>'+o.type+'</td><td>'+fmt(o.price)+'</td><td>'+fmt(o.amount,4)+'</td></tr>').join('')+'</table>';
-    }else{ordDiv.innerHTML='<div class="empty">No active orders</div>'}
+      setContent('ordersTable',buildTable(
+        ['Symbol','Side','Type','Price','Amount'],
+        orders.orders.map(o=>[
+          el('td',null,[String(o.symbol)]),
+          el('td',{className:sideClass(o.side)},[String(o.side)]),
+          el('td',null,[String(o.type)]),
+          el('td',null,[fmt(o.price)]),
+          el('td',null,[fmt(o.amount,4)]),
+        ])
+      ));
+    }else{setContent('ordersTable',el('div',{className:'empty'},['No active orders']))}
 
     // Trades
-    const trdDiv=document.getElementById('tradesTable');
     if(trades.trades&&trades.trades.length){
-      trdDiv.innerHTML='<table><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th><th>Amount</th><th>Fee</th></tr>'+
-        trades.trades.slice(-20).reverse().map(t=>'<tr><td>'+fmtTime(t.timestamp)+'</td><td>'+t.symbol+'</td><td class="'+sideClass(t.side)+'">'+t.side+'</td><td>'+fmt(t.price)+'</td><td>'+fmt(t.amount,4)+'</td><td>'+fmt(t.fee,4)+'</td></tr>').join('')+'</table>';
-    }else{trdDiv.innerHTML='<div class="empty">No trades yet</div>'}
+      setContent('tradesTable',buildTable(
+        ['Time','Symbol','Side','Price','Amount','Fee'],
+        trades.trades.slice(-20).reverse().map(t=>[
+          el('td',null,[fmtTime(t.timestamp)]),
+          el('td',null,[String(t.symbol)]),
+          el('td',{className:sideClass(t.side)},[String(t.side)]),
+          el('td',null,[fmt(t.price)]),
+          el('td',null,[fmt(t.amount,4)]),
+          el('td',null,[fmt(t.fee,4)]),
+        ])
+      ));
+    }else{setContent('tradesTable',el('div',{className:'empty'},['No trades yet']))}
 
     // Balances
-    const balDiv=document.getElementById('balancesTable');
     if(portfolio.portfolio&&Object.keys(portfolio.portfolio).length){
-      balDiv.innerHTML='<table><tr><th>Asset</th><th>Total</th><th>Available</th></tr>'+
-        Object.entries(portfolio.portfolio).map(([k,v])=>'<tr><td>'+k+'</td><td>'+fmt(v.total,4)+'</td><td>'+fmt(v.available,4)+'</td></tr>').join('')+'</table>';
-    }else{balDiv.innerHTML='<div class="empty">No balances</div>'}
+      setContent('balancesTable',buildTable(
+        ['Asset','Total','Available'],
+        Object.entries(portfolio.portfolio).map(([k,v])=>[
+          el('td',null,[String(k)]),
+          el('td',null,[fmt(v.total,4)]),
+          el('td',null,[fmt(v.available,4)]),
+        ])
+      ));
+    }else{setContent('balancesTable',el('div',{className:'empty'},['No balances']))}
 
     // Fees
-    const feeDiv=document.getElementById('feesTable');
     if(pnl.total_fees&&Object.keys(pnl.total_fees).length){
-      feeDiv.innerHTML='<table><tr><th>Currency</th><th>Amount</th></tr>'+
-        Object.entries(pnl.total_fees).map(([k,v])=>'<tr><td>'+k+'</td><td>'+fmt(v,6)+'</td></tr>').join('')+'</table>';
-    }else{feeDiv.innerHTML='<div class="empty">No fees data</div>'}
+      setContent('feesTable',buildTable(
+        ['Currency','Amount'],
+        Object.entries(pnl.total_fees).map(([k,v])=>[
+          el('td',null,[String(k)]),
+          el('td',null,[fmt(v,6)]),
+        ])
+      ));
+    }else{setContent('feesTable',el('div',{className:'empty'},['No fees data']))}
 
   }catch(e){
     document.getElementById('statusDot').className='dot err';

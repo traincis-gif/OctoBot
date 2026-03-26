@@ -3,11 +3,15 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Save Paradex config
+# Save Paradex config — validate JSON before writing
 if [[ -n "${PARADEX_CONFIG}" ]]; then
-  echo "$PARADEX_CONFIG" | tee /octobot/user/config.json >/dev/null
+  echo "${PARADEX_CONFIG}" | python -m json.tool > /dev/null 2>&1 \
+    || { echo "ERROR: PARADEX_CONFIG is not valid JSON"; exit 1; }
+  printf '%s' "${PARADEX_CONFIG}" > /octobot/user/config.json
 elif [[ -n "${OCTOBOT_CONFIG}" ]]; then
-  echo "$OCTOBOT_CONFIG" | tee /octobot/user/config.json >/dev/null
+  echo "${OCTOBOT_CONFIG}" | python -m json.tool > /dev/null 2>&1 \
+    || { echo "ERROR: OCTOBOT_CONFIG is not valid JSON"; exit 1; }
+  printf '%s' "${OCTOBOT_CONFIG}" > /octobot/user/config.json
 fi
 
 # Install tentacles on first run (or after volume wipe)
@@ -24,7 +28,7 @@ if [ ! -d "/octobot/tentacles/Trading" ]; then
   echo "Tentacles installed."
 fi
 
-# Disable set -e
+# Disable set -e for launcher (handles its own errors)
 set +e
 
 # Start Paradex bot (OctoBot engine + Dashboard + Telegram)
