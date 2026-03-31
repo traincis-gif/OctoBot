@@ -22,7 +22,7 @@ app = FastAPI(title="Paradex Dashboard", docs_url=None, redoc_url=None)
 app.add_middleware(
     SessionMiddleware,
     secret_key=_SESSION_SECRET,
-    https_only=os.getenv("RAILWAY_ENVIRONMENT") is not None,
+    same_site="lax",
 )
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
