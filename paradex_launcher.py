@@ -1,20 +1,20 @@
 """
-Paradex Launcher — starts OctoBot engine + Dashboard + Telegram bot
-in a single process.
+Paradex Launcher — starts Dashboard first (for healthcheck),
+then OctoBot engine + Telegram bot.
 """
 import os
 import sys
 import asyncio
 import threading
 import logging
-
-import uvicorn
+import time
 
 logger = logging.getLogger("ParadexLauncher")
 
 
-def _start_dashboard_thread(port: int):
+def _start_dashboard(port: int):
     """Run FastAPI dashboard in a background thread."""
+    import uvicorn
     config = uvicorn.Config(
         "paradex_dashboard.app:app",
         host="0.0.0.0",
@@ -25,13 +25,13 @@ def _start_dashboard_thread(port: int):
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     logger.info(f"Dashboard started on port {port}")
+    return thread
 
 
 async def _inject_services(bot):
-    """Wait for exchange to be ready, then start Dashboard API + Telegram."""
+    """Wait for exchange to be ready, then inject API into Dashboard + Telegram."""
     from octobot.octobot_api import OctoBotAPI
 
-    # Wait for exchange managers to appear (max 120s)
     bot_api = None
     for _ in range(120):
         try:
@@ -66,24 +66,31 @@ async def _inject_services(bot):
 
 
 def main():
-    # Start dashboard server in background thread
+    # 1. Start dashboard FIRST — Railway healthcheck needs it immediately
     dashboard_port = int(os.getenv("PORT", "8080"))
-    _start_dashboard_thread(dashboard_port)
+    _start_dashboard(dashboard_port)
+    logger.info(f"Dashboard listening on :{dashboard_port}, starting OctoBot...")
 
-    # Patch OctoBot's start_bot to inject our services after initialization
-    from octobot import commands as octobot_commands
-    original_start_bot = octobot_commands.start_bot
+    # 2. Patch OctoBot to inject services after init
+    try:
+        from octobot import commands as octobot_commands
+        original_start_bot = octobot_commands.start_bot
 
-    async def patched_start_bot(bot, bot_logger, catch=False):
-        await original_start_bot(bot, bot_logger, catch=catch)
-        # After bot is initialized, inject dashboard + telegram
-        asyncio.ensure_future(_inject_services(bot))
+        async def patched_start_bot(bot, bot_logger, catch=False):
+            await original_start_bot(bot, bot_logger, catch=catch)
+            asyncio.ensure_future(_inject_services(bot))
 
-    octobot_commands.start_bot = patched_start_bot
+        octobot_commands.start_bot = patched_start_bot
 
-    # Run OctoBot CLI (blocks forever)
-    from octobot.cli import main as octobot_main
-    octobot_main()
+        # 3. Run OctoBot CLI (blocks forever)
+        from octobot.cli import main as octobot_main
+        octobot_main()
+    except Exception as e:
+        logger.error(f"OctoBot failed to start: {e}")
+        # Keep process alive so dashboard stays up for debugging
+        logger.info("Dashboard still running for diagnostics. Check /health")
+        while True:
+            time.sleep(60)
 
 
 if __name__ == "__main__":

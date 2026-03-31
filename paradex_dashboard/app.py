@@ -31,6 +31,11 @@ DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
 _bot_api = None
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 def set_bot_api(bot_api):
     global _bot_api
     _bot_api = bot_api
