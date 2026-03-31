@@ -25,8 +25,12 @@ import octobot_evaluators.constants as evaluators_constants
 
 import octobot_trading.constants as trading_constants
 
-import tentacles.Trading.Mode.index_trading_mode.index_trading as index_trading
-import tentacles.Trading.Mode.index_trading_mode.index_distribution as index_distribution
+try:
+    import tentacles.Trading.Mode.index_trading_mode.index_trading as index_trading
+    import tentacles.Trading.Mode.index_trading_mode.index_distribution as index_distribution
+except (ImportError, ModuleNotFoundError):
+    index_trading = None
+    index_distribution = None
 import tentacles.Meta.Keywords.scripting_library.configuration.exchanges_configuration as exchanges_configuration
 
 

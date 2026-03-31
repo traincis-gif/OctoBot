@@ -41,8 +41,12 @@ import octobot_tentacles_manager.api
 import octobot_tentacles_manager.configuration
 
 
-import tentacles.Trading.Mode.index_trading_mode.index_trading as index_trading
-import tentacles.Trading.Mode.index_trading_mode.index_distribution as index_distribution
+try:
+    import tentacles.Trading.Mode.index_trading_mode.index_trading as index_trading
+    import tentacles.Trading.Mode.index_trading_mode.index_distribution as index_distribution
+except (ImportError, ModuleNotFoundError):
+    index_trading = None
+    index_distribution = None
 import tentacles.Meta.Keywords.scripting_library.errors as scr_errors
 import tentacles.Meta.Keywords.scripting_library.constants as scr_constants
 import tentacles.Meta.Keywords.scripting_library.configuration.tentacles_configuration as tentacles_configuration
