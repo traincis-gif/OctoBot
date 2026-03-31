@@ -20,6 +20,8 @@ RUN apt-get update \
 
 ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
 
+# Cache bust: Railway may cache COPY layer. This ARG changes on every commit.
+ARG CACHE_BUST=1
 COPY . /build/
 
 # Install all pip dependencies + Paradex bot package, then copy sub-packages
